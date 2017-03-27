@@ -2,11 +2,14 @@ package com.mlxphone.p_u_stats.service;
 
 import android.app.Service;
 import android.app.usage.UsageStats;
+import android.app.usage.UsageStatsManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ResolveInfo;
 import android.os.IBinder;
 import android.util.Log;
 
+import com.mlxphone.p_u_stats.activities.TipActivity;
 import com.mlxphone.p_u_stats.utils.UsageStatsManger;
 
 import java.util.List;
@@ -19,6 +22,7 @@ import static android.content.ContentValues.TAG;
 
 public class StartService extends Service {
 
+    Context mContext;
     Timer mTimer;
 
     public StartService() {
@@ -36,18 +40,18 @@ public class StartService extends Service {
         TimerTask task = new TimerTask() {
             @Override
             public void run() {
-
+                getTopApp();
             }
         };
         mTimer.schedule(task, 1000, 500);
         return super.onStartCommand(intent, flags, startId);
     }
 
-    private void getToApp() {
-        //usagestats
-        UsageStatsManger mUsageStatsManger = (UsageStatsManger) getSystemService(Context.USAGE_STATS_SERVICE);
+    private void getTopApp() {
+        UsageStatsManager mUsageStatsManager= (UsageStatsManager) getSystemService(Context.USAGE_STATS_SERVICE);
         long time = System.currentTimeMillis();
-        List<UsageStats> usageStatsList = mUsageStatsManger.queryUsageStats(UsageStatsManger.INTERVAL_BEST, time - 2000, time);
+        List<UsageStats> usageStatsList = mUsageStatsManager.queryUsageStats(UsageStatsManger.INTERVAL_BEST, time - 2000, time);
+
         if (usageStatsList != null && usageStatsList.isEmpty()) {
             SortedMap<Long, UsageStats> usageStatsMap = new TreeMap<>();
             for (UsageStats usageStats : usageStatsList) {
@@ -66,8 +70,24 @@ public class StartService extends Service {
                 startActivity(intent);
 
                 //启动提示页面
-                Intent intent1=new Intent();
+                Intent intent1 = new Intent(mContext, TipActivity.class);
+                intent1.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent1);
             }
+        }
+    }
+
+    public String getLauncherPackageName(Context context) {
+        final Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_HOME);
+        final ResolveInfo res = context.getPackageManager().resolveActivity(intent, 0);
+        if (res.activityInfo == null) {
+            return "";
+        }
+        if (res.activityInfo.packageName.equals("android")) {
+            return "";
+        } else {
+            return res.activityInfo.packageName;
         }
     }
 }
